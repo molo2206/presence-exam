@@ -11,7 +11,6 @@ export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
-    // Hash du mot de passe
     const hashedPassword = await bcrypt.hash(createUserDto.pswd, 10);
 
     const user = await this.prisma.user.create({
@@ -79,13 +78,26 @@ export class UserService {
     return { message: `Utilisateur ${id} supprimé avec succès` };
   }
 
-  async login(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+  async login(identifier: string, pswd: string) {
+    if (!identifier) throw new UnauthorizedException('Email ou nom requis');
+    if (!pswd) throw new UnauthorizedException('Mot de passe requis');
 
-    if (!user) throw new UnauthorizedException('Email ou mot de passe incorrect');
+    // Cherche par email ou fullName
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { full_name: identifier }, // ou full_name selon ta colonne
+        ],
+      },
+    });
 
-    const isPasswordValid = await bcrypt.compare(password, user.pswd);
-    if (!isPasswordValid) throw new UnauthorizedException('Email ou mot de passe incorrect');
+    if (!user) throw new UnauthorizedException('Email ou nom incorrect');
+    if (!user.pswd)
+      throw new UnauthorizedException('Mot de passe non défini pour cet utilisateur');
+
+    const isPasswordValid = await bcrypt.compare(pswd, user.pswd);
+    if (!isPasswordValid) throw new UnauthorizedException('Mot de passe incorrect');
 
     const secret = process.env.JWT_SECRET;
     if (!secret) throw new Error('JWT_SECRET is not defined');
@@ -93,7 +105,14 @@ export class UserService {
     const payload = { sub: user.id, email: user.email };
     const token = jwt.sign(payload, secret, { expiresIn: '1h' });
 
-    const { pswd, ...result } = user;
-    return { user: result, access_token: token };
+    const { pswd: _pswd, ...userData } = user;
+
+    return {
+      message: 'Connexion réussie',
+      data: {
+        ...userData,
+        access_token: token,
+      },
+    };
   }
 }

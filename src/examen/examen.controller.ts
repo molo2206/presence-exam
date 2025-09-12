@@ -3,7 +3,7 @@ import { ExamenService } from './examen.service';
 import { CreateExamanDto } from './dto/create-examan.dto';
 import { UpdateExamanDto } from './dto/update-examan.dto';
 
-@Controller('examen')
+@Controller('examens')
 export class ExamenController {
   constructor(private readonly examenService: ExamenService) {}
 
@@ -12,23 +12,33 @@ export class ExamenController {
     return this.examenService.create(createExamanDto);
   }
 
-  @Get()
+  @Get('all')
   findAll() {
     return this.examenService.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.examenService.findOne(+id);
+    return this.examenService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateExamanDto: UpdateExamanDto) {
-    return this.examenService.update(+id, updateExamanDto);
+    return this.examenService.update(id, updateExamanDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.examenService.remove(+id);
+    return this.examenService.remove(id);
+  }
+
+  @Post(':examId/presences/:studentId')
+  addPresence(@Param('examId') examId: string, @Param('studentId') studentId: string) {
+    return this.examenService.addPresence(examId, studentId);
+  }
+
+  @Get(':examId/presences')
+  getPresences(@Param('examId') examId: string) {
+    return this.examenService.getPresences(examId);
   }
 }

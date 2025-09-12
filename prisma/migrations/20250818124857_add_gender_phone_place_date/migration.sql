@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE `student` ADD COLUMN `dateOfBirth` DATETIME(3) NULL,
+    ADD COLUMN `gender` VARCHAR(191) NULL,
+    ADD COLUMN `phone` VARCHAR(191) NULL,
+    ADD COLUMN `placeOfBirth` VARCHAR(191) NULL;

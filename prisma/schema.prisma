@@ -3,24 +3,41 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql" // ou "postgress"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
-model User {
-  id          String       @id @default(uuid())
-  full_name   String
-  email       String       @unique
-  pswd        String      
-  phone       String?
-  gender      String? 
-  status      Boolean      @default(true)
-  deleted     Boolean      @default(false)
-  profil      String? 
-  dateBorn    DateTime?
-  provider    String?
-  fingerprint String? 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+
+model Exam {
+  id        String     @id @default(uuid())
+  name      String
+  date      DateTime
+  sessionId String?
+  session   Session?   @relation(fields: [sessionId], references: [id], map: "Exam_sessionId_fkey")
+  presences Presence[]
+
+  @@index([sessionId], map: "Exam_sessionId_fkey")
+}
+
+model Presence {
+  id        String   @id @default(uuid())
+  studentId String
+  examId    String
+  timestamp DateTime @default(now())
+  exam      Exam     @relation(fields: [examId], references: [id], map: "Presence_examId_fkey")
+  student   Student  @relation(fields: [studentId], references: [id], map: "Presence_studentId_fkey")
+
+  @@unique([studentId, examId], map: "Presence_studentId_examId_key")
+  @@index([examId], map: "Presence_examId_fkey")
+}
+
+model Promotion {
+  id        String    @id @default(uuid())
+  name      String
+  sectionId String
+  section   Section   @relation(fields: [sectionId], references: [id], map: "Promotion_sectionId_fkey")
+  students  Student[]
+
+  @@index([sectionId], map: "Promotion_sectionId_fkey")
 }
 
 model Section {
@@ -29,39 +46,60 @@ model Section {
   promotions Promotion[]
 }
 
-model Promotion {
-  id         String     @id @default(uuid())
-  name       String
-  sectionId  String
-  section    Section    @relation(fields: [sectionId], references: [id])
-  students   Student[]
-}
-
-model Student {
-  id           String     @id @default(uuid())
-  matricule    String     @unique
-  fullName     String
-  fingerprint  String     // Empreinte encodée (base64 ou hash)
-  promotionId  String
-  promotion    Promotion  @relation(fields: [promotionId], references: [id])
-  presences    Presence[]
-}
-
-model Exam {
-  id        String     @id @default(uuid())
+model Session {
+  id        String    @id @default(uuid())
   name      String
-  date      DateTime
-  presences Presence[]
+  startDate DateTime?
+  endDate   DateTime?
+  exams     Exam[]
 }
 
-model Presence {
-  id         String    @id @default(uuid())
-  studentId  String
-  examId     String
-  timestamp  DateTime  @default(now())
+model Student { 
+  id            String     @id @default(uuid())
+  matricule     String     @unique(map: "Student_matricule_key")
+  fullName      String
+  fingerprint   String?    @db.Text   // texte long
+  gender        String?    
+  phone         String?    
+  placeOfBirth  String?    
+  dateOfBirth   DateTime?  
+  promotionId   String
+  recessId      String?     
+  presences     Presence[]
+  promotion     Promotion  @relation(fields: [promotionId], references: [id], map: "Student_promotionId_fkey")
+  recess        Recess?    @relation(fields: [recessId], references: [id], map: "Student_vacationId_fkey")
 
-  student    Student   @relation(fields: [studentId], references: [id])
-  exam       Exam      @relation(fields: [examId], references: [id])
-  
-  @@unique([studentId, examId]) // Un étudiant ne peut être enregistré qu'une fois par examen
+  @@unique([fingerprint(length: 255)])  // <-- unique sur les 255 premiers caractères
+  @@index([promotionId], map: "Student_promotionId_fkey")
+  @@index([recessId], map: "Student_vacationId_fkey")
 }
+
+
+
+
+model User {
+  id          String    @id @default(uuid())
+  full_name   String
+  email       String    @unique(map: "User_email_key")
+  pswd        String
+  phone       String?
+  gender      String?
+  status      Boolean   @default(true)
+  deleted     Boolean   @default(false)
+  profil      String?
+  dateBorn    DateTime?
+  provider    String?
+  fingerprint String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+model Recess {
+  id        String    @id @default(uuid())
+  name      String
+  startTime DateTime?
+  endTime   DateTime?
+  students  Student[]
+}
+
